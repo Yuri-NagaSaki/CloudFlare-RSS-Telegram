@@ -633,13 +633,15 @@ const handleTest = async (env: Env, config: RuntimeConfig, chatId: number, args:
     style: -100,
     display_media: -100
   }, user, 10);
-  const formatted = formatPost(entry, feedRow, formatting);
-  await sendFormattedPost(config, chatId, formatted.html, formatted.title, entry.link, formatted.media, {
+  const formatted = await formatPost(entry, feedRow, formatting, config);
+  if (!formatted) {
+    await sendMessage(config, chatId, t(lang, "internal_error"));
+    return;
+  }
+  await sendFormattedPost(config, chatId, formatted.html, formatted.media, {
     disableNotification: formatting.notify === 0,
-    linkPreview: formatting.link_preview === 1,
-    sendMode: formatting.send_mode,
-    lengthLimit: formatting.length_limit,
-    displayMedia: formatting.display_media
+    needMedia: formatted.needMedia,
+    needLinkPreview: formatted.needLinkPreview
   });
 };
 

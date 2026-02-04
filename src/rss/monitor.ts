@@ -56,29 +56,12 @@ export const runMonitor = async (env: Env, config: RuntimeConfig): Promise<void>
       for (const entry of newEntries.reverse()) {
         for (const sub of subs) {
           const formatting = resolveFormatting(sub, sub.user, options.default_interval);
-          const formatted = formatPost(entry, sub.feed, formatting);
-          const media = [...formatted.media];
-          if (entry.enclosures) {
-            for (const enclosure of entry.enclosures) {
-              if (enclosure.url) media.push(enclosure.url);
-            }
-          }
-          if (formatted.sendAsLinkOnly && entry.link) {
-            await sendFormattedPost(config, sub.user_id, entry.link, formatted.title, entry.link, [], {
-              disableNotification: formatting.notify === 0,
-              linkPreview: formatting.link_preview === 1,
-              sendMode: -1,
-              lengthLimit: formatting.length_limit,
-              displayMedia: formatting.display_media
-            });
-            continue;
-          }
-          await sendFormattedPost(config, sub.user_id, formatted.html, formatted.title, entry.link, media, {
+          const formatted = await formatPost(entry, sub.feed, formatting, config);
+          if (!formatted) continue;
+          await sendFormattedPost(config, sub.user_id, formatted.html, formatted.media, {
             disableNotification: formatting.notify === 0,
-            linkPreview: formatting.link_preview === 1,
-            sendMode: formatting.send_mode,
-            lengthLimit: formatting.length_limit,
-            displayMedia: formatting.display_media
+            needMedia: formatted.needMedia,
+            needLinkPreview: formatted.needLinkPreview
           });
         }
       }

@@ -64,6 +64,21 @@ const sub = {
   display_media: -100
 };
 
+const config = {
+  botToken: "",
+  webhookSecret: undefined,
+  adminIds: new Set<number>(),
+  multiuser: true,
+  defaultInterval: 10,
+  minimalInterval: 5,
+  userSubLimit: -1,
+  channelSubLimit: -1,
+  imgRelayServer: "https://rsstt-img-relay.rongrong.workers.dev/",
+  imagesWeserv: "https://wsrv.nl/",
+  telegraphToken: undefined,
+  defaultAdminChatId: undefined
+};
+
 describe("formatPost", () => {
   it("generates stable hash", () => {
     const hash1 = generateEntryHash(entry);
@@ -71,10 +86,11 @@ describe("formatPost", () => {
     expect(hash1).toEqual(hash2);
   });
 
-  it("formats post with title and tags", () => {
+  it("formats post with title and tags", async () => {
     const formatting = resolveFormatting(sub, user, 10);
-    const formatted = formatPost(entry, feed, formatting);
-    expect(formatted.html).toContain("Hello");
-    expect(formatted.html).toContain("#custom");
+    const formatted = await formatPost(entry, feed, formatting, config);
+    expect(formatted).not.toBeNull();
+    expect(formatted?.html).toContain("Hello");
+    expect(formatted?.html).toContain("#custom");
   });
 });
