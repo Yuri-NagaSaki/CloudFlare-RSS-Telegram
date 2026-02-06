@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { generateEntryHash, formatPost, resolveFormatting } from "../src/parsing/format";
 
 const entry = {
@@ -92,5 +92,33 @@ describe("formatPost", () => {
     expect(formatted).not.toBeNull();
     expect(formatted?.html).toContain("Hello");
     expect(formatted?.html).toContain("#custom");
+  });
+
+  it("prefers telegraph for very long posts when token is configured", async () => {
+    const formatting = resolveFormatting(sub, user, 10);
+    const longEntry = {
+      ...entry,
+      title: "Long Post",
+      content: `<p>${"正文内容".repeat(600)}</p>`,
+      summary: ""
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => ({ ok: true, result: { url: "https://telegra.ph/mock-page" } })
+    });
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    try {
+      const formatted = await formatPost(longEntry, feed, formatting, {
+        ...config,
+        telegraphToken: "mock-token"
+      });
+      expect(formatted).not.toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(formatted?.html).toContain("https://telegra.ph/mock-page");
+      expect(formatted?.html).not.toContain("正文内容");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

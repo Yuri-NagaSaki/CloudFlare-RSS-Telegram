@@ -51,14 +51,21 @@ export const editMessageText = async (
   text: string,
   options: { parseMode?: string; disablePreview?: boolean; replyMarkup?: unknown } = {}
 ): Promise<TelegramMessage> => {
-  return telegramFetch<TelegramMessage>(config, "editMessageText", {
-    chat_id: chatId,
-    message_id: messageId,
-    text,
-    parse_mode: options.parseMode ?? "HTML",
-    disable_web_page_preview: options.disablePreview ?? false,
-    reply_markup: options.replyMarkup
-  });
+  try {
+    return await telegramFetch<TelegramMessage>(config, "editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: options.parseMode ?? "HTML",
+      disable_web_page_preview: options.disablePreview ?? false,
+      reply_markup: options.replyMarkup
+    });
+  } catch (error) {
+    if (isMessageNotModifiedError(error)) {
+      return { message_id: messageId, chat: { id: chatId }, text };
+    }
+    throw error;
+  }
 };
 
 export const answerCallbackQuery = async (config: RuntimeConfig, callbackQueryId: string, text?: string, alert = false): Promise<void> => {
@@ -150,4 +157,9 @@ export const downloadFile = async (config: RuntimeConfig, filePath: string): Pro
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to download file");
   return response.arrayBuffer();
+};
+
+const isMessageNotModifiedError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /message is not modified/i.test(message);
 };

@@ -26,6 +26,8 @@ import { formatPost, resolveFormatting } from "../parsing/format";
 import { sendFormattedPost } from "../telegram/sender";
 
 const PAGE_SIZE = 30;
+const USER_STATE_IDLE = 0;
+const USER_STATE_WAITING_SUB_URL = 1;
 
 export type TelegramUpdate = {
   update_id: number;
@@ -178,7 +180,15 @@ const handleMessage = async (env: Env, config: RuntimeConfig, message: TelegramM
   }
 
   const rawText = message.text || message.caption || "";
-  const parsed = parseCommand(rawText);
+  const trimmedText = rawText.trim();
+  if (!trimmedText) return;
+
+  if (!trimmedText.startsWith("/") && user.state === USER_STATE_WAITING_SUB_URL) {
+    await handleSub(env, config, chatId, trimmedText.split(/\s+/g), lang);
+    return;
+  }
+
+  const parsed = parseCommand(trimmedText);
   if (!parsed) return;
 
   const { command, args } = parsed;
@@ -269,14 +279,18 @@ const sendLangPicker = async (config: RuntimeConfig, chatId: number, lang: strin
 
 const handleSub = async (env: Env, config: RuntimeConfig, chatId: number, args: string[], lang: string): Promise<void> => {
   if (args.length === 0) {
+    await updateUserDefaults(env.DB, chatId, { state: USER_STATE_WAITING_SUB_URL });
     await sendMessage(config, chatId, t(lang, "sub_reply_feed_url_prompt_html"));
     return;
   }
   const urls = args.filter((arg) => arg.startsWith("http://") || arg.startsWith("https://"));
   if (urls.length === 0) {
+    await updateUserDefaults(env.DB, chatId, { state: USER_STATE_WAITING_SUB_URL });
     await sendMessage(config, chatId, t(lang, "sub_reply_feed_url_prompt_html"));
     return;
   }
+
+  await updateUserDefaults(env.DB, chatId, { state: USER_STATE_IDLE });
 
   const options = await getEffectiveOptions(env, config);
   const user = await getOrCreateUser(env.DB, chatId);

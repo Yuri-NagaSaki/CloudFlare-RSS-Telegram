@@ -23,6 +23,10 @@ export const ONLY_MEDIA_NO_CONTENT = 1;
 export const RSSTT = 0;
 export const FLOWERSS = 1;
 
+const AUTO_TELEGRAPH_PLAIN_LENGTH = 1400;
+const AUTO_TELEGRAPH_ANCHOR_COUNT = 4;
+const AUTO_TELEGRAPH_PARAGRAPH_COUNT = 10;
+
 export const NO_VIA = "no_via";
 export const FEED_TITLE_VIA_NO_LINK = "feed_title_via_no_link";
 export const FEED_TITLE_VIA_W_LINK = "feed_title_via_w_link";
@@ -212,11 +216,11 @@ export class PostFormatter {
       const mediaMsgCount = displayMedia !== DISABLE && this.media ? this.media.estimateMessageCounts() : 0;
       normalMsgPost = this.generateFormattedPost(subTitle, tags, titleType, viaType, Boolean(needAuthor), NORMAL_MESSAGE, messageStyle);
       const normalMsgLen = getPlainTextLength(normalMsgPost);
-      if (
+      const exceedsTelegramLimit =
         (!(displayMedia === ONLY_MEDIA_NO_CONTENT && this.media) &&
           ((lengthLimit > 0 && lengthLimit <= (this.plainLength || 0)) || normalMsgLen > (mediaMsgCount ? 1024 : 4096))) ||
-        mediaMsgCount > 1
-      ) {
+        mediaMsgCount > 1;
+      if (exceedsTelegramLimit || this.shouldPreferTelegraphForReadability(normalMsgLen)) {
         messageType = TELEGRAPH_MESSAGE;
       } else {
         messageType = NORMAL_MESSAGE;
@@ -368,6 +372,21 @@ export class PostFormatter {
     const { header, footer } = this.getPostHeaderAndFooter(subTitle, tags, titleType, viaType, needAuthor, messageType, messageStyle);
     const content = messageType === NORMAL_MESSAGE ? this.parsedHtml || "" : "";
     return `${header}${header && content ? "\n\n" : ""}${content}${(header || content) && footer ? "\n\n" : ""}${footer}`;
+  }
+
+  private shouldPreferTelegraphForReadability(normalMsgLen: number): boolean {
+    if (!this.config.telegraphToken || !this.parsedHtml) return false;
+
+    const plainLength = this.plainLength || 0;
+    if (plainLength >= AUTO_TELEGRAPH_PLAIN_LENGTH || normalMsgLen >= AUTO_TELEGRAPH_PLAIN_LENGTH) return true;
+
+    if (normalMsgLen < 900) return false;
+    const paragraphCount = (this.parsedHtml.match(/\n\n/g) || []).length;
+    const anchorCount = (this.parsedHtml.match(/<a href=/g) || []).length;
+    return (
+      paragraphCount >= AUTO_TELEGRAPH_PARAGRAPH_COUNT ||
+      (paragraphCount >= 6 && anchorCount >= AUTO_TELEGRAPH_ANCHOR_COUNT)
+    );
   }
 
   private async parseHtml(): Promise<void> {
