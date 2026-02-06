@@ -15,8 +15,10 @@ export class Text {
     const ctor = this.constructor as typeof Text;
     this.tag = ctor.tag;
     this.attr = ctor.attr;
-    if (content instanceof Text || content.constructor === Text) {
-      this.content = content.content;
+    if (content instanceof Text) {
+      const sameType = content.constructor === this.constructor;
+      const isBaseText = content.constructor === Text;
+      this.content = sameType || isBaseText ? content.content : content;
     } else if (typeof content === "string") {
       this.content = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     } else {

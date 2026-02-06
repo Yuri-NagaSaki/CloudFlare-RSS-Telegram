@@ -1,3 +1,5 @@
+import { decode } from "he";
+
 export type HtmlNode = HtmlElement | HtmlText;
 
 export type HtmlElement = {
@@ -116,17 +118,17 @@ const appendChild = (parent: HtmlElement, child: HtmlNode): void => {
 
 const appendText = (parent: HtmlElement, text: string): void => {
   if (!text) return;
-  appendChild(parent, { type: "text", data: text });
+  appendChild(parent, { type: "text", data: decode(text) });
 };
 
 const parseAttributes = (input: string): Record<string, string> => {
   const attrs: Record<string, string> = {};
-  const attrRe = /([:\\w-]+)(?:\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s\"'>]+)))?/g;
+  const attrRe = /([:\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
   let match: RegExpExecArray | null;
   while ((match = attrRe.exec(input)) !== null) {
     const key = match[1];
     const value = match[2] ?? match[3] ?? match[4] ?? key;
-    attrs[key] = value;
+    attrs[key] = decode(value);
   }
   return attrs;
 };
