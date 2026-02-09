@@ -1,10 +1,10 @@
-name = "tg-rss-worker"
+name = "lazy-rss"
 main = "src/index.ts"
 compatibility_date = "2025-12-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-TELEGRAM_ADMIN_IDS = "1328163046,-1002559558975,-1002234161183"
+TELEGRAM_ADMIN_IDS = "7857830221,-5013019682"
 MULTIUSER = "false"
 DEFAULT_INTERVAL = "5"
 MINIMAL_INTERVAL = "5"
@@ -15,12 +15,12 @@ IMAGES_WESERV_NL = "https://wsrv.nl/"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "TgRss-D1"
-database_id = "b1e6fd90-0a2c-4822-a43b-92dbc763680d"
+database_name = "lazy-d1"
+database_id = "edf7b298-7c36-43e5-90bf-53f275d878f2"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "9433416d26fc44ed8cbb232b49325945"
+id = "e8448f88b40343ee928cd8fe52ba04e2"
 
 [triggers]
 crons = ["*/5 * * * *"]

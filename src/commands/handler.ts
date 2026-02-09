@@ -708,11 +708,10 @@ export const setBotCommands = async (config: RuntimeConfig, chatId: number, lang
   const commands = buildCommandsList(lang, isManager(config, chatId));
   await telegramFetch(config, "setMyCommands", {
     commands,
-    scope: { type: "chat", chat_id: chatId },
-    language_code: normalizeLangCode(lang)
+    scope: { type: "chat", chat_id: chatId }
   });
 };
 
 const normalizeLangCode = (lang: string): string => {
-  return lang.replace(/_/g, "-").toLowerCase();
+  return lang.split(/[-_]/)[0].toLowerCase();
 };
