@@ -16,16 +16,29 @@ const API_BASE = "https://api.telegram.org";
 
 export const telegramFetch = async <T>(config: RuntimeConfig, method: string, payload?: Record<string, unknown>): Promise<T> => {
   const url = `${API_BASE}/bot${config.botToken}/${method}`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: payload ? JSON.stringify(payload) : undefined
-  });
-  const data = (await response.json()) as TelegramResponse<T>;
-  if (!data.ok) {
-    throw new Error(data.description || `Telegram API error: ${method}`);
+  const maxRetries = 2;
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0 && lastError) {
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload ? JSON.stringify(payload) : undefined
+    });
+    if (response.status === 429 || response.status >= 500) {
+      lastError = new Error(`Telegram API ${method}: HTTP ${response.status}`);
+      if (attempt < maxRetries) continue;
+    }
+    const data = (await response.json()) as TelegramResponse<T>;
+    if (!data.ok) {
+      throw new Error(data.description || `Telegram API error: ${method}`);
+    }
+    return data.result as T;
   }
-  return data.result as T;
+  throw lastError!;
 };
 
 export const sendMessage = async (

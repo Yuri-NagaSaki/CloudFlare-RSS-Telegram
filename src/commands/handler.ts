@@ -16,7 +16,9 @@ import {
   updateSub,
   getUser,
   updateUserDefaults,
-  setOption
+  setOption,
+  type SubRow,
+  type FeedRow
 } from "../db/queries";
 import { fetchFeed } from "../rss/feed";
 import { trySniffFeed } from "../rss/monitor";
@@ -118,7 +120,7 @@ const handleCallback = async (env: Env, config: RuntimeConfig, cb: TelegramCallb
   if (data.startsWith("unsub=")) {
     const subId = Number(data.split("=")[1]);
     if (Number.isFinite(subId)) {
-      const sub = await env.DB.prepare("SELECT * FROM sub WHERE id = ?1").bind(subId).first<any>();
+      const sub = await env.DB.prepare("SELECT * FROM sub WHERE id = ?1").bind(subId).first<SubRow>();
       if (sub) {
         await deleteSub(env.DB, subId);
         const options = await getEffectiveOptions(env, config);
@@ -365,7 +367,7 @@ const handleUnsub = async (env: Env, config: RuntimeConfig, chatId: number, args
   const target = args[0];
   if (target.match(/^\d+$/)) {
     const subId = Number(target);
-    const sub = await env.DB.prepare("SELECT * FROM sub WHERE id = ?1").bind(subId).first<any>();
+    const sub = await env.DB.prepare("SELECT * FROM sub WHERE id = ?1").bind(subId).first<SubRow>();
     if (sub) {
       await deleteSub(env.DB, subId);
       const options = await getEffectiveOptions(env, config);
@@ -460,12 +462,12 @@ const sendListForSet = async (env: Env, config: RuntimeConfig, chatId: number, l
 };
 
 const showSubSettings = async (env: Env, config: RuntimeConfig, chatId: number, subId: number, lang: string, messageId?: number): Promise<void> => {
-  const sub = await env.DB.prepare("SELECT * FROM sub WHERE id = ?1").bind(subId).first<any>();
+  const sub = await env.DB.prepare("SELECT * FROM sub WHERE id = ?1").bind(subId).first<SubRow>();
   if (!sub) {
     await sendMessage(config, chatId, t(lang, "subscription_not_exist"));
     return;
   }
-  const feed = await env.DB.prepare("SELECT * FROM feed WHERE id = ?1").bind(sub.feed_id).first<any>();
+  const feed = await env.DB.prepare("SELECT * FROM feed WHERE id = ?1").bind(sub.feed_id).first<FeedRow>();
   const user = await getUser(env.DB, sub.user_id);
   const text = `${t(lang, "subscription_info")}\n\n${t(lang, "feed_title")}: ${feed?.title}\n${t(lang, "feed_url")}: ${feed?.link}`;
   const buttons = buildToggleButtons(subId, sub, lang, false, user || undefined);
@@ -513,18 +515,26 @@ const buildToggleButtons = (
   ];
 };
 
+const ALLOWED_TOGGLE_KEYS = new Set(["notify", "send_mode", "link_preview", "display_media", "display_author", "display_via", "display_title", "display_entry_tags", "style"]);
+
+type ToggleKey = "notify" | "send_mode" | "link_preview" | "display_media" | "display_author" | "display_via" | "display_title" | "display_entry_tags" | "style";
+
 const toggleSubOption = async (env: Env, subId: number, key: string): Promise<void> => {
-  const sub = await env.DB.prepare("SELECT * FROM sub WHERE id = ?1").bind(subId).first<any>();
+  if (!ALLOWED_TOGGLE_KEYS.has(key)) return;
+  const sub = await env.DB.prepare("SELECT * FROM sub WHERE id = ?1").bind(subId).first<SubRow>();
   if (!sub) return;
-  const next = nextValue(key, sub[key]);
-  await updateSub(env.DB, subId, { [key]: next } as any);
+  const toggleKey = key as ToggleKey;
+  const next = nextValue(toggleKey, sub[toggleKey]);
+  await updateSub(env.DB, subId, { [toggleKey]: next });
 };
 
 const toggleUserDefault = async (env: Env, userId: number, key: string): Promise<void> => {
+  if (!ALLOWED_TOGGLE_KEYS.has(key)) return;
   const user = await getUser(env.DB, userId);
   if (!user) return;
-  const next = nextValue(key, (user as any)[key]);
-  await updateUserDefaults(env.DB, userId, { [key]: next } as any);
+  const toggleKey = key as ToggleKey;
+  const next = nextValue(toggleKey, user[toggleKey]);
+  await updateUserDefaults(env.DB, userId, { [toggleKey]: next });
 };
 
 const nextValue = (key: string, current: number): number => {

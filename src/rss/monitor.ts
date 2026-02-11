@@ -69,6 +69,7 @@ export const runMonitor = async (env: Env, config: RuntimeConfig): Promise<void>
       await upsertEntryHashes(env.DB, feed.id, hashes, newEntries[0]?.published);
       await pruneEntryHashes(env.DB, feed.id, ENTRY_KEEP);
     } catch (err) {
+      console.error(`[monitor] Feed ${feed.id} (${feed.link}) error:`, err instanceof Error ? err.message : err);
       const nextCheck = new Date(Date.now() + (feed.interval || options.default_interval) * 60 * 1000).toISOString();
       const errorCount = (feed.error_count || 0) + 1;
       await updateFeed(env.DB, feed.id, { next_check_time: nextCheck, error_count: errorCount });

@@ -223,11 +223,14 @@ const convertTable = (
 const childrenToText = (children: Array<TelegraphNode>): string =>
   children.map((child) => (typeof child === "string" ? child : childrenToText(child.children || []))).join("");
 
+const escapeAttrValue = (value: string): string =>
+  value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 const nodesToHtml = (nodes: Array<TelegraphNode>): string => {
   return nodes
     .map((node) => {
       if (typeof node === "string") return node;
-      const attrs = node.attrs ? " " + Object.entries(node.attrs).map(([k, v]) => `${k}="${v}"`).join(" ") : "";
+      const attrs = node.attrs ? " " + Object.entries(node.attrs).map(([k, v]) => `${k}="${escapeAttrValue(v)}"`).join(" ") : "";
       const children = node.children ? nodesToHtml(node.children) : "";
       if (node.tag === "br" || node.tag === "hr" || node.tag === "img") {
         return `<${node.tag}${attrs}>`;

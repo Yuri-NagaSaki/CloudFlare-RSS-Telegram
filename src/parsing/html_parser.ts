@@ -4,6 +4,7 @@ import { Media, Image, Video, Audio, Animation } from "./medium";
 import { stripNewline, stripLineEnd, resolveRelativeLink, isAbsoluteHttpLink, emojify, isEmoticon } from "./utils";
 
 const srcsetParser = /(?:^|,\s*)(?<url>\S+)(?:\s+(?<number>\d+(\.\d+)?)(?<unit>[wx]))?\s*(?=,|$)/g;
+const MAX_MEDIA = 50;
 
 const effectiveLink = (content: Text | string, href: string, base?: string): Text | Link => {
   if (href.startsWith("javascript")) {
@@ -46,6 +47,7 @@ export class Parser {
 
   private async parseItem(soup: HtmlNode | Array<HtmlNode>, inList = false): Promise<Text | null> {
     this.parseItemCount += 1;
+    if (this.parseItemCount > 5000) return null;
     if (Array.isArray(soup)) {
       const result: Array<Text> = [];
       let prevTagName: string | null = null;
@@ -179,7 +181,9 @@ export class Parser {
         if (src) matches.push({ url: src, number: 1, unit: "x" });
         const unitW = matches.filter((m) => m.unit === "w").sort((a, b) => b.number - a.number);
         const unitX = matches.filter((m) => m.unit === "x").sort((a, b) => b.number - a.number);
-        while (unitW.length || unitX.length) {
+        let iterations = 0;
+        while ((unitW.length || unitX.length) && iterations < 100) {
+          iterations++;
           const srcW = unitW.length ? unitW.shift() : null;
           const srcX = unitX.length ? unitX.shift() : null;
           if (srcW) multiSrc.push(srcW.url);
@@ -206,7 +210,7 @@ export class Parser {
         }
         resolved.push(resolvedSrc);
       }
-      if (resolved.length) {
+      if (resolved.length && this.media.length < MAX_MEDIA) {
         this.media.add(isGif ? new Animation(resolved) : new Image(resolved));
       }
       return null;
@@ -215,7 +219,7 @@ export class Parser {
     if (tag === "video") {
       const poster = soup.attribs?.poster;
       const multiSrc = getMultiSrc(soup, this.feedLink);
-      if (multiSrc.length) {
+      if (multiSrc.length && this.media.length < MAX_MEDIA) {
         this.media.add(new Video(multiSrc, poster ? resolveRelativeLink(this.feedLink, poster) : undefined));
       }
       return null;
@@ -223,7 +227,7 @@ export class Parser {
 
     if (tag === "audio") {
       const multiSrc = getMultiSrc(soup, this.feedLink);
-      if (multiSrc.length) {
+      if (multiSrc.length && this.media.length < MAX_MEDIA) {
         this.media.add(new Audio(multiSrc));
       }
       return null;

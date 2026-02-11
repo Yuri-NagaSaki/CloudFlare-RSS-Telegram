@@ -47,10 +47,10 @@ export class Text {
   strip(deeper = false, stripL = true, stripR = true): void {
     if (!this.isNested()) {
       if (stripL) {
-        String(this.content).replace(/^\s+/, "");
+        this.content = String(this.content).replace(/^\s+/, "");
       }
       if (stripR) {
-        String(this.content).replace(/\s+$/, "");
+        this.content = String(this.content).replace(/\s+$/, "");
       }
       return;
     }
