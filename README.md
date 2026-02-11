@@ -39,6 +39,11 @@ wrangler kv namespace create KV
 | `WORKER_NAME` | 否 | Worker 名称（默认 `tg-rss-worker`） |
 | `TELEGRAM_WEBHOOK_SECRET` | 否 | Webhook 验证 secret（建议设置） |
 | `TELEGRAPH_TOKEN` | 否 | Telegraph token（用于长文推送） |
+| `MULTIUSER` | 否 | 是否允许非管理员使用（默认 `false`） |
+| `DEFAULT_INTERVAL` | 否 | 默认检查间隔，分钟（默认 `5`） |
+| `MINIMAL_INTERVAL` | 否 | 最小检查间隔，分钟（默认 `5`） |
+| `USER_SUB_LIMIT` | 否 | 用户订阅数上限（默认 `-1` 无限制） |
+| `CHANNEL_SUB_LIMIT` | 否 | 频道订阅数上限（默认 `-1` 无限制） |
 
 ### 3) 触发部署
 

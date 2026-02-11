@@ -51,36 +51,37 @@ jobs:
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
           KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
           TELEGRAM_ADMIN_IDS: ${{ secrets.TELEGRAM_ADMIN_IDS }}
+          MULTIUSER: ${{ secrets.MULTIUSER }}
+          DEFAULT_INTERVAL: ${{ secrets.DEFAULT_INTERVAL }}
+          MINIMAL_INTERVAL: ${{ secrets.MINIMAL_INTERVAL }}
+          USER_SUB_LIMIT: ${{ secrets.USER_SUB_LIMIT }}
+          CHANNEL_SUB_LIMIT: ${{ secrets.CHANNEL_SUB_LIMIT }}
         run: |
-          cat > wrangler.toml << 'TOML_END'
-          name = "__WORKER_NAME__"
+          cat > wrangler.toml << EOF
+          name = "${WORKER_NAME:-tg-rss-worker}"
           main = "src/index.ts"
           compatibility_date = "2025-12-01"
           compatibility_flags = ["nodejs_compat"]
 
           [vars]
-          TELEGRAM_ADMIN_IDS = "__TELEGRAM_ADMIN_IDS__"
-          MULTIUSER = "false"
-          DEFAULT_INTERVAL = "5"
-          MINIMAL_INTERVAL = "5"
-          USER_SUB_LIMIT = "-1"
-          CHANNEL_SUB_LIMIT = "-1"
+          TELEGRAM_ADMIN_IDS = "${TELEGRAM_ADMIN_IDS}"
+          MULTIUSER = "${MULTIUSER:-false}"
+          DEFAULT_INTERVAL = "${DEFAULT_INTERVAL:-5}"
+          MINIMAL_INTERVAL = "${MINIMAL_INTERVAL:-5}"
+          USER_SUB_LIMIT = "${USER_SUB_LIMIT:--1}"
+          CHANNEL_SUB_LIMIT = "${CHANNEL_SUB_LIMIT:--1}"
           IMG_RELAY_SERVER = "https://rsstt-img-relay.rongrong.workers.dev/"
           IMAGES_WESERV_NL = "https://wsrv.nl/"
 
           [[d1_databases]]
           binding = "DB"
           database_name = "rss-db"
-          database_id = "__D1_DATABASE_ID__"
+          database_id = "${D1_DATABASE_ID}"
 
           [[kv_namespaces]]
           binding = "KV"
-          id = "__KV_NAMESPACE_ID__"
-          TOML_END
-          sed -i "s|__WORKER_NAME__|${WORKER_NAME:-tg-rss-worker}|g" wrangler.toml
-          sed -i "s|__TELEGRAM_ADMIN_IDS__|${TELEGRAM_ADMIN_IDS}|g" wrangler.toml
-          sed -i "s|__D1_DATABASE_ID__|${D1_DATABASE_ID}|g" wrangler.toml
-          sed -i "s|__KV_NAMESPACE_ID__|${KV_NAMESPACE_ID}|g" wrangler.toml
+          id = "${KV_NAMESPACE_ID}"
+          EOF
 
       - name: Initialize D1 schema
         env:
