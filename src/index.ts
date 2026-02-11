@@ -1,5 +1,5 @@
 import { getConfig, type Env } from "./config";
-import { handleUpdate } from "./commands/handler";
+import { handleUpdate, type TelegramUpdate } from "./commands/handler";
 import { runMonitor } from "./rss/monitor";
 
 const jsonResponse = (data: unknown, status = 200) =>
@@ -19,7 +19,7 @@ export default {
           return new Response("forbidden", { status: 403 });
         }
       }
-      const update = await request.json();
+      const update = await request.json() as TelegramUpdate;
       ctx.waitUntil(handleUpdate(env, config, update));
       return jsonResponse({ ok: true });
     }

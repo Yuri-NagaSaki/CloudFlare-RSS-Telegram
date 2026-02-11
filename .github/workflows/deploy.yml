@@ -144,7 +144,7 @@ jobs:
             payload=$(jq -n --arg url "$webhook_url" '{url: $url}')
           fi
 
-          result=$(curl -sf -X POST \
+          result=$(curl -sS -X POST \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
             -H "Content-Type: application/json" \
             -d "$payload")
@@ -174,7 +174,7 @@ jobs:
             {"command": "help", "description": "View help"}
           ]'
 
-          result=$(curl -sf -X POST \
+          result=$(curl -sS -X POST \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setMyCommands" \
             -H "Content-Type: application/json" \
             -d "{\"commands\": ${commands}}")

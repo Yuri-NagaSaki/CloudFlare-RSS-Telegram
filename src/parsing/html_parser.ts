@@ -132,7 +132,9 @@ export class Parser {
     }
 
     if (tag === "pre") {
-      return new Pre(await this.parseItem(soup.children as Array<HtmlNode>, inList));
+      const preContent = await this.parseItem(soup.children as Array<HtmlNode>, inList);
+      if (!preContent) return null;
+      return new Pre(preContent);
     }
 
     if (tag === "code") {
@@ -144,7 +146,9 @@ export class Parser {
         if (found) className = found;
         else if (parts.length > 0) className = `language-${parts[0]}`;
       }
-      return new Code(await this.parseItem(soup.children as Array<HtmlNode>, inList), className || undefined);
+      const codeContent = await this.parseItem(soup.children as Array<HtmlNode>, inList);
+      if (!codeContent) return null;
+      return new Code(codeContent, className || undefined);
     }
 
     if (tag === "br") return new Br();
